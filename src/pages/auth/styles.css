@@ -1,0 +1,22 @@
+.auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 16px;
+}
+
+.login-with-google-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #4285F4;
+  color: white;
+  cursor: pointer;
+}
+
+.login-with-google-button:hover {
+  background-color: #357ae8;
+}
