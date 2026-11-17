@@ -1,23 +1,35 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "../config/firebase-config";
-import { useGetUserInfo } from './useGetUserInfo';
-// import { useRevalidator } from "react-router-dom";
+import { auth, db } from "../config/firebase-config";
 
 export const useAddTransaction = () => {
   const transactionCollectionRef = collection(db, "transactions");
-  const { userID } = useGetUserInfo();
+
   const addTransaction = async ({
     description,
     transactionAmount,
     transactionType,
   }) => {
-    await addDoc(transactionCollectionRef, {
-        userID,
+    // SECURITY: take the UID from Firebase Auth (the real signed-in user),
+    // NOT from localStorage. localStorage can be edited by anyone in devtools.
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("Cannot add transaction: no signed-in user.");
+      return;
+    }
+
+    try {
+      await addDoc(transactionCollectionRef, {
+        userID: user.uid,
         description,
         transactionAmount,
         transactionType,
-        createdAt: serverTimestamp()
-    });
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      // e.g. "permission-denied" if the Firestore rules reject the data
+      console.error(err);
+    }
   };
+
   return { addTransaction };
 };

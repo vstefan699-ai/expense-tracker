@@ -1,0 +1,82 @@
+rules_version = '2';
+
+// =====================================================================
+// Firestore Security Rules for the Expense Tracker
+// =====================================================================
+// These rules run on Google's servers for EVERY read/write request.
+// The React code can be changed by anyone in their browser devtools,
+// but these rules cannot — that's why they are the real security layer.
+//
+// Golden rule: never trust data the browser sends. Always compare it to
+// request.auth.uid, which Firebase fills in from the user's verified
+// Google sign-in token. The browser cannot fake request.auth.
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helper functions ----------
+
+    // True only if the request comes from a signed-in Firebase user.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // True if the EXISTING document (already in the database) belongs
+    // to the signed-in user. Used for reading and deleting.
+    function ownsExistingDoc() {
+      return isSignedIn() && resource.data.userID == request.auth.uid;
+    }
+
+    // Amount is stored as a string today (it comes straight from the
+    // <input type="number">), e.g. "250" or "99.95". We also accept a
+    // real number in case the app is changed to store numbers later.
+    // Negative amounts are rejected — "expense" vs "income" already
+    // says which direction the money goes.
+    function isValidAmount(amount) {
+      return (amount is string
+                && amount.size() <= 20
+                && amount.matches('^[0-9]+([.][0-9]{1,2})?$'))
+          || ((amount is int || amount is float)
+                && amount >= 0
+                && amount < 1000000000);
+    }
+
+    // Checks a NEW transaction before it is saved.
+    function isValidNewTransaction() {
+      let data = request.resource.data;
+      let fields = ['userID', 'description', 'transactionAmount',
+                    'transactionType', 'createdAt'];
+      return data.keys().hasAll(fields)          // nothing missing
+          && data.keys().hasOnly(fields)         // nothing extra sneaked in
+          && data.userID == request.auth.uid     // can't create for someone else
+          && data.description is string
+          && data.description.size() > 0
+          && data.description.size() <= 200
+          && isValidAmount(data.transactionAmount)
+          && data.transactionType in ['expense', 'income']
+          && data.createdAt == request.time;     // must be serverTimestamp()
+    }
+
+    // ---------- transactions collection ----------
+    match /transactions/{transactionId} {
+
+      // "read" covers both get (one doc) and list (a query).
+      // For queries, Firestore only allows them if the query itself
+      // filters on where("userID", "==", <your uid>) — otherwise the
+      // whole query is rejected. Rules are NOT filters.
+      allow read: if ownsExistingDoc();
+
+      allow create: if isSignedIn() && isValidNewTransaction();
+
+      allow delete: if ownsExistingDoc();
+
+      // The app never edits a transaction, so updates are blocked.
+      // This also stops anyone changing userID to "move" a transaction.
+      allow update: if false;
+    }
+
+    // Any other collection is denied by default, because nothing
+    // else matches. (No "allow" = no access.)
+  }
+}

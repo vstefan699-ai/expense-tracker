@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { signOut } from "firebase/auth";
+import { useEffect, useState } from "react";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 import { useAddTransaction } from "../../hooks/useAddTransaction";
 import { useGetTransactions } from "../../hooks/useGetTransactions";
 import { useGetUserInfo } from "../../hooks/useGetUserInfo";
@@ -22,6 +22,20 @@ export const ExpenseTracker = () => {
   const { deleteTransaction } = useDeleteTransaction();
 
   const { balance, income, expenses } = transactionTotals;
+
+  // SECURITY / correctness: the page used to trust localStorage alone.
+  // Now we ask Firebase Auth. If there is no real signed-in user
+  // (session expired, or someone faked localStorage), clear the stale
+  // info and send them back to the sign-in page.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        localStorage.removeItem("auth");
+        navigate("/");
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -75,6 +89,7 @@ export const ExpenseTracker = () => {
             <input
               type="number"
               placeholder="Amount"
+              min="0"
               value={transactionAmount}
               required
               onChange={(e) => setTransactionAmount(e.target.value)}

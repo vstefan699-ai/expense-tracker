@@ -18,7 +18,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-expense-tracker \"mocha firestore-tests/rules.test.js --timeout 20000\""
   },
   "eslintConfig": {
     "extends": [
@@ -37,5 +38,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase-tools": "^15.36.0",
+    "mocha": "^12.0.3"
   }
 }
