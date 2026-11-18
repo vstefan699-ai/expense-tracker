@@ -23,3 +23,11 @@ yarn-debug.log*
 yarn-error.log*
 
 .firebase/
+
+# Firebase emulator logs
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Local environment variables (Firebase config)
+.env

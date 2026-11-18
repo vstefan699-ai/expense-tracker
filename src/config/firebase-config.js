@@ -1,31 +1,20 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import {getAuth, GoogleAuthProvider} from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
-// import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase web config is read from environment variables (see .env.example).
+// Create React App only exposes variables that start with REACT_APP_,
+// and bakes them into the build at `npm start` / `npm run build` time.
 const firebaseConfig = {
-  apiKey: "AIzaSyAsBEf3obj2fol3b4OjA-57oeL5usnogF0",
-  authDomain: "expense-tracker-78e06.firebaseapp.com",
-  projectId: "expense-tracker-78e06",
-  storageBucket: "expense-tracker-78e06.firebasestorage.app",
-  messagingSenderId: "704233263894",
-  appId: "1:704233263894:web:9a017330c3d8726d3af637",
-  measurementId: "G-V8EGD34KZ4"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app)
-export const provider = new GoogleAuthProvider()
-export const db = getFirestore(app)
-// const analytics = getAnalytics(app);
-
-
-// firebase login
-// firebase init
-// firebase deploy
+export const auth = getAuth(app);
+export const provider = new GoogleAuthProvider();
+export const db = getFirestore(app);

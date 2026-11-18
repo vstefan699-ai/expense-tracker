@@ -1,70 +1,112 @@
-# Getting Started with Create React App
+# Expense Tracker
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A personal income and expense tracker built with **React** and **Firebase**. Users sign in with Google, record transactions and see their balance update in real time. Each user can only access their own records.
 
-## Available Scripts
+**Live demo:** https://expense-tracker-78e06.web.app
 
-In the project directory, you can run:
+> **About this project:** I built the core app by following a tutorial, as part of my web development studies. I then added the work described under [Security](#security): Firestore security rules, automated rules tests, and a fix so the app uses the verified Firebase Auth user ID instead of a value stored in `localStorage`.
 
-### `npm start`
+## Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- Google sign-in (Firebase Authentication)
+- Add income and expense transactions with a description and amount (in Rand)
+- Balance, total income and total expenses calculated automatically
+- Real-time updates with Firestore `onSnapshot`
+- Delete transactions
+- Each user sees only their own transactions, enforced by Firestore security rules
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Tech stack
 
-### `npm test`
+- React 19 (Create React App), React Router 7
+- Firebase Authentication (Google provider)
+- Cloud Firestore
+- Firebase Hosting
+- Mocha + `@firebase/rules-unit-testing` + Firebase Emulator (security rules tests)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Security
 
-### `npm run build`
+The data is protected server-side by [`firestore.rules`](firestore.rules), not by checks in the React code:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Users must be signed in to read, create or delete anything.
+- A transaction can only be read or deleted by the user whose UID matches its `userID` field (`request.auth.uid`).
+- New transactions must belong to the signed-in user, contain only the expected fields, have a valid type (`income`/`expense`), a non-negative amount, a 1–200 character description and a server timestamp.
+- Updates are blocked (the app never edits transactions), so ownership can't be changed.
+- All other collections are denied by default.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+The rules are tested by 30 automated tests in [`firestore-tests/rules.test.js`](firestore-tests/rules.test.js). They cover allowed actions (a user managing their own data) and blocked ones: signed-out access, reading or deleting another user's data, ownership spoofing, invalid data and edits.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Getting started
 
-### `npm run eject`
+### Prerequisites
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- [Node.js](https://nodejs.org/) 22.12 or later (20.19+ also works)
+- A Firebase project with **Authentication** (Google provider enabled) and **Cloud Firestore**
+- Java 21 or later, only needed to run the security rules tests
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 1. Install
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+git clone https://github.com/vstefan699-ai/expense-tracker.git
+cd expense-tracker
+npm install
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 2. Configure Firebase (environment variables)
 
-## Learn More
+The Firebase config is read from environment variables, so it isn't hardcoded in the source.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Copy `.env.example` to a new file called `.env.local` in the project root.
+2. Fill in the values from the Firebase console: **Project settings** → **Your apps** card → select your web app → **Config**.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```
+REACT_APP_FIREBASE_API_KEY=...
+REACT_APP_FIREBASE_AUTH_DOMAIN=...
+REACT_APP_FIREBASE_PROJECT_ID=...
+REACT_APP_FIREBASE_STORAGE_BUCKET=...
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=...
+REACT_APP_FIREBASE_APP_ID=...
+```
 
-### Code Splitting
+`.env.local` is listed in `.gitignore` and is never committed. Create React App only exposes variables that start with `REACT_APP_`, and it reads them when `npm start` or `npm run build` runs, so restart the dev server after changing them.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+> A Firebase **web** config is not a secret: it ends up in the browser bundle of any Firebase web app. The data is protected by the security rules, not by hiding these values.
 
-### Analyzing the Bundle Size
+### 3. Run locally
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```bash
+npm start
+```
 
-### Making a Progressive Web App
+Open http://localhost:3000.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### 4. Run the security rules tests
 
-### Advanced Configuration
+```bash
+npm run test:rules
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+This starts the Firestore emulator, runs the tests against `firestore.rules` and shuts the emulator down. Nothing touches the real database. The first run downloads the emulator.
 
-### Deployment
+## Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+You'll need the Firebase CLI (included as a dev dependency) and must be logged in with `npx firebase login`.
 
-### `npm run build` fails to minify
+```bash
+npm run build
+npx firebase deploy --only hosting
+npx firebase deploy --only firestore:rules
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Deploy the app before the rules when both have changed, so the live site is never running old code against new rules.
+
+## Project structure
+
+```
+src/
+  config/firebase-config.js    Firebase initialisation (reads env variables)
+  hooks/                       Firestore and user hooks (add, get, delete transactions)
+  pages/auth/                  Google sign-in page
+  pages/expense-tracker/       Main tracker page
+firestore.rules                Firestore security rules
+firestore-tests/               Security rules tests (emulator)
+```
